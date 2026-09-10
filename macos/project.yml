@@ -1,0 +1,68 @@
+name: PassportKeys
+options:
+  bundleIdPrefix: cc.bugs
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  developmentLanguage: zh-Hans
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    # 辅助功能授权按代码签名识别 app。固定用开发证书签名,重新编译后授权不会失效。
+    # 没有该证书时可用 scripts/build.sh 的 SIGN_IDENTITY=- 改为 ad-hoc 签名。
+    DEVELOPMENT_TEAM: 6N2J645XLG
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: Apple Development
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+targets:
+  PassportKeys:
+    type: application
+    platform: macOS
+    sources:
+      - path: PassportKeys
+    info:
+      path: PassportKeys/Info.plist
+      properties:
+        CFBundleName: PassportKeys
+        CFBundleDisplayName: Passport Keys
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.utilities
+        NSBluetoothAlwaysUsageDescription: 通过蓝牙连接 FoloToy AI Passport,接收三个功能键的按键事件。
+    settings:
+      base:
+        PRODUCT_NAME: PassportKeys
+        PRODUCT_BUNDLE_IDENTIFIER: cc.bugs.PassportKeys
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+  PassportKeysTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: PassportKeysTests
+    dependencies:
+      - target: PassportKeys
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cc.bugs.PassportKeysTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/PassportKeys.app/Contents/MacOS/PassportKeys
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  PassportKeys:
+    build:
+      targets:
+        PassportKeys: all
+        PassportKeysTests: [test]
+    test:
+      targets:
+        - PassportKeysTests
