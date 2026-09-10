@@ -19,6 +19,8 @@ This directory contains AI Passport engineering rules and reusable workflows, gr
 
 ## CI
 
+In the passport-keys repository, GitHub runs only the root workflows: `../.github/workflows/pr-check.yaml` for pull requests and `../.github/workflows/publish.yaml` for releases, described in [docs/release.md](../../../docs/release.md). The documents below describe the upstream FoloToy/ai-passport workflows, which do not run in this repository.
+
 - [CI-validation.md](ci/CI-validation.md): pull-request and main-branch checks.
 - [CI-build-and-release.md](ci/CI-build-and-release.md): tagged firmware builds and releases.
 - [CI-sync-main.md](ci/CI-sync-main.md): upstream synchronization for forks.

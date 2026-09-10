@@ -28,6 +28,8 @@
 
 ## CI（ci）
 
+在 passport-keys 仓库中,GitHub 只运行仓库根目录的工作流:Pull Request 检查 `../.github/workflows/pr-check.yaml` 与发布 `../.github/workflows/publish.yaml`,说明见根目录的 [docs/release.md](../../../docs/release.md)。下面的文档描述上游 FoloToy/ai-passport 的工作流,它们不在本仓库中运行。
+
 - [CI-validation.zh_CN.md](ci/CI-validation.zh_CN.md)：Pull Request 与 main 的自动仓库检查、host tests 和固件验证。
 - [CI-build-and-release.zh_CN.md](ci/CI-build-and-release.zh_CN.md)：自动构建与发布说明（tag 触发自动编译固件并发布 Release）。
 - [CI-sync-main.zh_CN.md](ci/CI-sync-main.zh_CN.md)：上游同步说明（定期把上游 `FoloToy/ai-passport` 的 `main` 同步到本 fork 的 `main`）。
