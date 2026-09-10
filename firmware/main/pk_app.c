@@ -234,6 +234,8 @@ static void refresh_link_state(int64_t now)
     ESP_LOGI(TAG, "link state %d -> %d", s_ui_link, (int)link);
     s_ui_link = (int)link;
     if (s_ui_ok) pk_ui_set_link(link);
+    // 拔线、app 超时等变化同样点亮屏幕,否则熄屏期间用户看不到新的连接状态。
+    wake(now);
 }
 
 static void refresh_battery(int64_t now, bool force)
