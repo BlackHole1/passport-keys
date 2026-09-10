@@ -59,6 +59,23 @@ struct SettingsStoreTests {
         #expect(store.isEnabled)
         #expect(store.allowBluetooth)
         #expect(!store.hasLaunchedBefore)
+        #expect(store.deviceConfig == DeviceConfig(screenOffSeconds: 10))
+    }
+
+    @Test func clampsAndPersistsScreenOffSeconds() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        var notifications = 0
+        store.onDeviceConfigChange = { notifications += 1 }
+
+        store.setScreenOffSeconds(0)
+        store.setScreenOffSeconds(-5)
+        #expect(store.screenOffSeconds == 0)
+        store.setScreenOffSeconds(100_000)
+        #expect(store.screenOffSeconds == SettingsStore.screenOffRange.upperBound)
+        // 值没有变化时不重复下发。
+        #expect(notifications == 2)
+        #expect(SettingsStore(defaults: defaults).screenOffSeconds == SettingsStore.screenOffRange.upperBound)
     }
 
     @Test func persistsMappingsIncludingClearedButtons() {

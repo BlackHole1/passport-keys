@@ -16,7 +16,7 @@ The ESP32-C3 has no USB OTG controller, so the board cannot enumerate as a USB k
 | USB link | Installs the USB Serial/JTAG driver and routes the console through it. Protocol frames share the port with ESP-IDF logs; the macOS app parses from `{"t":` and ignores other text. |
 | BLE link | Connectable NimBLE peripheral named `Passport Keys`, one connection, no pairing. Events use a Notify characteristic; commands use Write Without Response. Following Apple's accessory design guidelines, it advertises every 20 ms for 30 seconds after boot, a disconnect, or USB being unplugged, then every 211.25 ms. |
 | Screen | Shows the link state, the shortcut mapped to each button (sent by the macOS app), and the battery level. The pressed row flashes and the mascot jumps. |
-| Backlight | 80% when active, 10% after 20 seconds idle, off after 45 seconds. Any button press or link change wakes it; the waking press is still forwarded. |
+| Backlight | 80% when active, off after the idle timeout set in the macOS app (10 seconds by default, `0` keeps the screen on). A button press, link change, or new setting wakes it; the waking press is still forwarded. |
 | Battery | Read every 60 seconds and sent to connected apps. `-1` is reported when the CW2017 gauge is unavailable. |
 | Failures | A display failure keeps the firmware running without a screen. A failure of one link is logged and the other link keeps working. NVS is never erased automatically. |
 
@@ -32,8 +32,9 @@ Each message is one UTF-8 JSON object followed by `\n`. Both links carry the sam
 | Device to Mac | pong / ack | `{"t":"pong"}`, `{"t":"ack","cmd":"labels"}` |
 | Mac to device | hello / ping / bye | `{"cmd":"hello"}` |
 | Mac to device | labels | `{"cmd":"labels","down":"Down","ok":"Return","up":"Cmd+A"}` |
+| Mac to device | config | `{"cmd":"config","screen_off":10}` |
 
-The Mac pings every 5 seconds. The device treats a link as offline after 15 seconds without a command, or immediately after `bye`, a BLE disconnect, or the USB cable being unplugged. `(boot, seq)` lets the Mac drop duplicate presses.
+The Mac pings every 5 seconds. The device treats a link as offline after 15 seconds without a command, or immediately after `bye`, a BLE disconnect, or the USB cable being unplugged. `(boot, seq)` lets the Mac drop duplicate presses. The screen-off timeout from `config` is kept in RAM only, so after a reboot the device uses 10 seconds until the app connects again.
 
 | BLE item | UUID |
 | --- | --- |
@@ -72,4 +73,4 @@ The `ver` field in `hello` is the ESP-IDF app description version. Release build
 - With USB disconnected and Bluetooth enabled on the Mac, the status changes to `BLE CONNECTED` within about 2 seconds.
 - Each button press flashes its row once and the Mac performs the mapped shortcut exactly once.
 - Quitting the app or unplugging USB returns the status to `WAITING FOR MAC` within a second, or to `BLE CONNECTED` once the Mac switches to Bluetooth. A lost BLE link is detected by the 4-second supervision timeout, and an app that stops responding is dropped after 15 seconds.
-- The backlight dims after 20 seconds and turns off after 45 seconds; a button press restores it.
+- With the default setting the backlight turns off after 10 seconds idle and a button press restores it. Setting the timeout to 0 in the macOS app keeps the screen on.

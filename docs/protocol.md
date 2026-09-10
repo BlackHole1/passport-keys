@@ -27,7 +27,7 @@ Mac 端策略:USB 优先。检测到已刷入本固件的 USB 设备时断开蓝
 | btn | `{"t":"btn","k":"up","e":"press","seq":12,"boot":"9f3a21c4"}` | 按键按下瞬间 |
 | bat | `{"t":"bat","soc":87,"mv":4012}` | `hello` 之后,以及每 60 秒;读不到时为 `-1` |
 | pong | `{"t":"pong"}` | 收到 `ping` |
-| ack | `{"t":"ack","cmd":"labels"}` | 收到 `labels` |
+| ack | `{"t":"ack","cmd":"labels"}` | 收到 `labels` 或 `config`,`cmd` 为对应命令名 |
 
 - `ver`:固件版本,取自构建时写入的 ESP-IDF 应用描述。发布版为 `X.Y.Z`,本地构建为 `git describe` 的结果;app 只用于显示。
 - `k`:`up` / `down` / `ok`。
@@ -41,6 +41,9 @@ Mac 端策略:USB 优先。检测到已刷入本固件的 USB 设备时断开蓝
 | hello | `{"cmd":"hello"}` | 回复 `hello` 与 `bat`,并把该链路标记为"已连接 app" |
 | ping | `{"cmd":"ping"}` | 回复 `pong`;Mac 每 5 秒发送一次,设备 15 秒收不到命令即认为 app 已离线;USB 拔线时立即离线 |
 | labels | `{"cmd":"labels","down":"Down","ok":"Return","up":"Cmd+A"}` | 在屏幕上显示每个键当前映射的快捷键(ASCII,最长 31 字节) |
+| config | `{"cmd":"config","screen_off":10}` | 空闲 `screen_off` 秒后关闭屏幕背光,`0` 表示永不熄屏,范围 0 到 86400。只保存在内存里,设备重启后恢复默认的 10 秒 |
 | bye | `{"cmd":"bye"}` | app 退出前发送,设备立即显示离线 |
 
-设备只解析扁平对象中的字符串字段;未知字段忽略,未知命令丢弃。单行最长 255 字节,超长行整行丢弃。
+握手成功后 app 立即下发 `labels` 与 `config`,之后在映射或设置变化时再次下发。
+
+设备只解析扁平对象:`cmd` 与标签是字符串,`screen_off` 是非负整数(不接受小数、指数或带引号的数字)。未知字段忽略;未知命令或字段不合法的命令整条丢弃。单行最长 255 字节,超长行整行丢弃。

@@ -6,7 +6,9 @@
 
 ## Unreleased
 
-- 加入 Passport Keys 应用:用单一界面替换演示菜单,通过 USB Serial/JTAG 或低功耗蓝牙,以 JSON Lines 协议把上、下、确认按键转发给 macOS 上的 Passport Keys app;屏幕显示连接状态、每个键的快捷键标签和电量,空闲时自动调暗背光。详见 [passport-keys.zh_CN.md](passport-keys.zh_CN.md)。
+- 新增可配置的自动息屏时间。macOS app 在握手后以及设置变化时下发 `{"cmd":"config","screen_off":N}`,背光在空闲 N 秒后熄灭(默认 10 秒,0 表示永不熄屏),取代原来 20 秒调暗、45 秒熄灭的固定策略。该值只保存在内存里。
+
+- 加入 Passport Keys 应用:用单一界面替换演示菜单,通过 USB Serial/JTAG 或低功耗蓝牙,以 JSON Lines 协议把上、下、确认按键转发给 macOS 上的 Passport Keys app;屏幕显示连接状态、每个键的快捷键标签和电量,空闲时自动熄屏。详见 [passport-keys.zh_CN.md](passport-keys.zh_CN.md)。
 
 - 固件版本号改为取自 ESP-IDF 应用描述(发布构建为 `PROJECT_VER`,其余为 `git describe`),不再写死在代码里。passport-keys 仓库的 CI 在根目录 `.github/workflows`(`pr-check.yaml`、`publish.yaml`)运行,因此移除了上游工作流。`validate.sh` 改为检查根目录工作流并传入 `PROJECT_VER`;`verify_firmware.py` 校验内嵌版本号,并确认合并镜像在 `cardid` 之前结束;`install-actionlint.sh` 的校验和比对兼容新版 macOS 自带的 BSD `sha256sum`。
 

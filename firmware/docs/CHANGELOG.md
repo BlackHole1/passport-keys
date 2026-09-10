@@ -6,7 +6,9 @@
 
 ## Unreleased
 
-- Added the Passport Keys application: the demo menu is replaced by a single screen that forwards UP, DOWN, and OK presses to the Passport Keys macOS app over USB Serial/JTAG or Bluetooth LE with a JSON Lines protocol, shows the link state, per-button shortcut labels, and battery level, and dims the backlight when idle. See [passport-keys.md](passport-keys.md).
+- Added a configurable screen-off timeout. The macOS app sends `{"cmd":"config","screen_off":N}` after the handshake and whenever the setting changes, and the backlight turns off after N idle seconds (10 by default, 0 keeps the screen on) instead of dimming at 20 seconds and turning off at 45 seconds. The value is kept in RAM only.
+
+- Added the Passport Keys application: the demo menu is replaced by a single screen that forwards UP, DOWN, and OK presses to the Passport Keys macOS app over USB Serial/JTAG or Bluetooth LE with a JSON Lines protocol, shows the link state, per-button shortcut labels, and battery level, and turns the backlight off when idle. See [passport-keys.md](passport-keys.md).
 
 - The firmware version now comes from the ESP-IDF app description (`PROJECT_VER` for release builds, `git describe` otherwise) instead of a hard-coded string. In the passport-keys repository, CI runs from the root `.github/workflows` (`pr-check.yaml`, `publish.yaml`), so the upstream workflows were removed. `validate.sh` lints the root workflows and forwards `PROJECT_VER`; `verify_firmware.py` checks the embedded version and that the merged image ends before `cardid`; `install-actionlint.sh` verifies checksums with the BSD `sha256sum` shipped by recent macOS.
 

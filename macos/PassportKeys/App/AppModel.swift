@@ -35,6 +35,12 @@ final class AppModel {
         settings.onMappingsChange = { [weak self] in
             self?.device.pushLabels()
         }
+        device.configProvider = { [weak self] in
+            self?.settings.deviceConfig
+        }
+        settings.onDeviceConfigChange = { [weak self] in
+            self?.device.pushConfig()
+        }
     }
 
     func start() {

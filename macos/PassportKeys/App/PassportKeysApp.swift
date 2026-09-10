@@ -16,7 +16,7 @@ struct PassportKeysApp: App {
             SettingsView(model: appDelegate.model)
         }
         // 默认高度正好放下全部设置;屏幕放不下时系统会缩小窗口。
-        .defaultSize(width: 540, height: 810)
+        .defaultSize(width: 540, height: 864)
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
     }

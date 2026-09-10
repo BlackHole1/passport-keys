@@ -54,7 +54,7 @@ size_t pk_format_ack(char *buf, size_t cap, const char *cmd)
 
 // ---------------------------------------------------------------------------
 // 命令解析:一个只覆盖本协议需要的 JSON 子集的小解析器。
-// 不引入 cJSON:命令只有扁平字符串字段,手写解析可以固定栈内存、不做堆分配。
+// 不引入 cJSON:命令只有扁平的字符串字段与一个整数字段,手写解析可以固定栈内存、不做堆分配。
 // ---------------------------------------------------------------------------
 
 typedef struct {
@@ -163,6 +163,23 @@ static bool skip_scalar(cursor_t *c)
     return c->p > start;
 }
 
+// 读取 JSON 非负整数:不接受负号和前导零,超过 max 视为非法。
+// 数字后面的 '.'、'e' 会被调用方的分隔符检查拒绝,因此小数和指数写法也无效。
+static bool read_uint(cursor_t *c, uint32_t max, uint32_t *out)
+{
+    const char *start = c->p;
+    uint64_t value = 0;
+    while (c->p < c->end && *c->p >= '0' && *c->p <= '9') {
+        value = value * 10U + (uint64_t)(*c->p - '0');
+        if (value > max) return false;
+        c->p++;
+    }
+    size_t digits = (size_t)(c->p - start);
+    if (digits == 0 || (digits > 1 && *start == '0')) return false;
+    *out = (uint32_t)value;
+    return true;
+}
+
 bool pk_parse_command(const char *line, size_t len, pk_cmd_t *out)
 {
     memset(out, 0, sizeof(*out));
@@ -196,6 +213,9 @@ bool pk_parse_command(const char *line, size_t len, pk_cmd_t *out)
                     }
                 }
             }
+        } else if (strcmp(key, "screen_off") == 0) {
+            if (!read_uint(&c, PK_SCREEN_OFF_MAX_S, &out->screen_off_s)) return false;
+            out->has_screen_off = true;
         } else if (!skip_scalar(&c)) {
             return false;
         }
@@ -222,6 +242,9 @@ bool pk_parse_command(const char *line, size_t len, pk_cmd_t *out)
         out->type = PK_CMD_LABELS;
     } else if (strcmp(cmd, "bye") == 0) {
         out->type = PK_CMD_BYE;
+    } else if (strcmp(cmd, "config") == 0) {
+        if (!out->has_screen_off) return false;
+        out->type = PK_CMD_CONFIG;
     } else {
         return false;
     }
