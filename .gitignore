@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+
+# macOS app:XcodeGen 按 macos/project.yml 生成工程,编译与发布产物在 macos/build
+macos/build/
+macos/*.xcodeproj/
+
+# CI 在仓库根目录生成的缓存与发布产物
+/.ccache/
+/dist/

@@ -1,0 +1,97 @@
+name: PR Check
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Static checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint
+        run: |
+          actionlint_bin="$(firmware/tools/install-actionlint.sh "$RUNNER_TEMP/actionlint")"
+          echo "ACTIONLINT_BIN=${actionlint_bin}" >> "$GITHUB_ENV"
+
+      - name: Repository checks and firmware host tests
+        run: firmware/tools/validate.sh --static
+
+      - name: Release script tests
+        run: python3 -m unittest discover --start-directory contrib/ci --pattern "test_*.py"
+
+  macos:
+    name: macOS app
+    runs-on: macos-26
+    env:
+      # CI 没有开发证书,测试与编译都用 ad-hoc 签名。
+      SIGN_IDENTITY: "-"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Unit tests
+        run: macos/scripts/test.sh
+
+      - name: Release build
+        env:
+          CONFIGURATION: Release
+        run: macos/scripts/build.sh
+
+  firmware:
+    name: Firmware (ESP-IDF 5.5.3)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Restore ccache
+        uses: actions/cache@v6
+        with:
+          path: .ccache
+          key: firmware-ccache-${{ github.sha }}
+          restore-keys: |
+            firmware-ccache-
+
+      - name: Build and verify firmware
+        uses: espressif/esp-idf-ci-action@9d38657f3d789ca759b2b37aaf5ceffbc42c4f0d # v1
+        with:
+          esp_idf_version: v5.5.3
+          target: esp32c3
+          path: firmware
+          extra_docker_args: >-
+            -e CCACHE_DIR=/app/${{ github.repository }}/.ccache
+            -e IDF_CCACHE_ENABLE=1
+          command: ./tools/validate.sh --firmware
+
+      - name: Upload verified firmware
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: firmware-${{ github.run_id }}
+          path: firmware/build/FoloToy-AI-Passport-full.bin
+          if-no-files-found: error
+          retention-days: 7
