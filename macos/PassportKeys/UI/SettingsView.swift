@@ -171,8 +171,32 @@ private struct MappingRow: View {
 private struct GeneralSection: View {
     let model: AppModel
 
+    private var screenOff: Binding<Int> {
+        Binding(
+            get: { model.settings.screenOffSeconds },
+            set: { model.settings.setScreenOffSeconds($0) }
+        )
+    }
+
     var body: some View {
         Section("通用") {
+            LabeledContent {
+                HStack(spacing: 6) {
+                    TextField("", value: screenOff, format: .number.grouping(.never))
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 60)
+                    Stepper("", value: screenOff, in: SettingsStore.screenOffRange, step: 5)
+                        .labelsHidden()
+                    Text("秒")
+                        .foregroundStyle(.secondary)
+                }
+            } label: {
+                Text("Passport 自动息屏")
+                // 提示放在副标题里,切换到 0 时右侧控件不会因为文字变长而移动。
+                Text(model.settings.screenOffSeconds == 0 ? "当前为 0,屏幕永不熄灭" : "无操作多久后关闭屏幕,设为 0 表示永不熄屏")
+            }
             Toggle("允许通过蓝牙连接", isOn: Binding(
                 get: { model.settings.allowBluetooth },
                 set: { model.setAllowBluetooth($0) }

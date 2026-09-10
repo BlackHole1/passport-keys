@@ -16,6 +16,8 @@
 #define PK_LABEL_MAX      32
 // 设备发出的单条消息上限(含 NUL)。
 #define PK_MSG_MAX        128
+// config 命令里 screen_off 的上限(秒,即 24 小时);0 表示永不熄屏。
+#define PK_SCREEN_OFF_MAX_S 86400
 
 typedef enum {
     PK_KEY_UP = 0,
@@ -29,12 +31,15 @@ typedef enum {
     PK_CMD_PING,
     PK_CMD_LABELS,
     PK_CMD_BYE,
+    PK_CMD_CONFIG,
 } pk_cmd_type_t;
 
 typedef struct {
     pk_cmd_type_t type;
     bool has_label[PK_KEY_COUNT];
     char label[PK_KEY_COUNT][PK_LABEL_MAX];
+    bool has_screen_off;
+    uint32_t screen_off_s;      // config:空闲多少秒后熄屏,0 表示永不熄屏
 } pk_cmd_t;
 
 // 协议里的键名:"up" / "down" / "ok";越界返回 "?"。
@@ -50,6 +55,7 @@ size_t pk_format_ack(char *buf, size_t cap, const char *cmd);
 
 // 解析一行 host 命令(不含 '\n')。只接受扁平 JSON 对象:未知命令、嵌套值、语法错误都返回 false。
 // 标签里的非 ASCII 字符折叠为单个 '?',超长部分截断,因为屏幕字体只覆盖 ASCII。
+// config 命令必须带 0..PK_SCREEN_OFF_MAX_S 的整数 screen_off,否则整条命令无效。
 bool pk_parse_command(const char *line, size_t len, pk_cmd_t *out);
 
 // 按 '\n' 组帧。USB 读取和 BLE 写入都可能把一行拆成多段,每条链路各持有一个实例。

@@ -38,11 +38,10 @@ _Static_assert((int)BSP_BTN_UP == (int)PK_KEY_UP && (int)BSP_BTN_DOWN == (int)PK
 // Mac 每 5 秒 ping 一次;15 秒没收到任何命令即认为该链路上的 app 已离线。
 #define HOST_TIMEOUT_MS    15000
 #define BATTERY_PERIOD_MS  60000
-// 可穿戴设备电池只有 520 mAh:空闲 20 秒调暗,45 秒关背光;按键或连接变化时点亮。
-#define BACKLIGHT_ON       80
-#define BACKLIGHT_DIM      10
-#define DIM_AFTER_MS       20000
-#define OFF_AFTER_MS       45000
+// 可穿戴设备电池只有 520 mAh:空闲超过熄屏时间关闭背光,按键、连接变化或新设置到达时点亮。
+// 熄屏时间由 Mac app 的 config 命令下发,只保存在内存里,重启后恢复默认值。
+#define BACKLIGHT_ON           80
+#define DEFAULT_SCREEN_OFF_MS  10000
 
 typedef enum {
     EV_BUTTON,
@@ -72,6 +71,7 @@ static int s_battery_soc = -1;
 static int s_battery_mv = -1;
 static int s_backlight = -1;
 static int s_ui_link = -1;
+static int64_t s_screen_off_ms = DEFAULT_SCREEN_OFF_MS;   // 0 表示永不熄屏
 
 static int64_t now_ms(void)
 {
@@ -189,6 +189,17 @@ static void handle_command(pk_link_t link, const pk_cmd_t *cmd, int64_t now)
         }
         send_to(link, msg, pk_format_ack(msg, sizeof(msg), "labels"));
         break;
+    case PK_CMD_CONFIG: {
+        int64_t screen_off_ms = (int64_t)cmd->screen_off_s * 1000;
+        if (screen_off_ms != s_screen_off_ms) {
+            ESP_LOGI(TAG, "screen off after %" PRIu32 " s (0 = never)", cmd->screen_off_s);
+            s_screen_off_ms = screen_off_ms;
+        }
+        send_to(link, msg, pk_format_ack(msg, sizeof(msg), "config"));
+        // 按新设置重新计时,用户刚改完设置时屏幕保持点亮。
+        wake(now);
+        break;
+    }
     case PK_CMD_BYE:
         break;
     }
@@ -244,8 +255,8 @@ static void refresh_battery(int64_t now, bool force)
 
 static void refresh_backlight(int64_t now)
 {
-    int64_t idle = now - s_last_activity_ms;
-    set_backlight(idle >= OFF_AFTER_MS ? 0 : (idle >= DIM_AFTER_MS ? BACKLIGHT_DIM : BACKLIGHT_ON));
+    bool on = s_screen_off_ms == 0 || now - s_last_activity_ms < s_screen_off_ms;
+    set_backlight(on ? BACKLIGHT_ON : 0);
 }
 
 static void app_task(void *arg)

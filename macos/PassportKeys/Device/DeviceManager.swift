@@ -68,6 +68,7 @@ final class DeviceManager {
 
     @ObservationIgnored var onButton: ((PassportButton) -> Void)?
     @ObservationIgnored var labelsProvider: (() -> DeviceLabels)?
+    @ObservationIgnored var configProvider: (() -> DeviceConfig?)?
 
     @ObservationIgnored private let monitor = SerialDeviceMonitor()
     @ObservationIgnored private let ble = BLEClient()
@@ -151,6 +152,12 @@ final class DeviceManager {
     func pushLabels() {
         guard case .connected(let device) = status, let labels = labelsProvider?() else { return }
         send(.labels(labels), via: device.link)
+    }
+
+    /// 把息屏时间等运行参数发给设备。设备不保存这些参数,每次连接后都要重新下发。
+    func pushConfig() {
+        guard case .connected(let device) = status, let config = configProvider?() else { return }
+        send(.config(config), via: device.link)
     }
 
     // MARK: - USB
@@ -311,6 +318,7 @@ final class DeviceManager {
             ))
             lastError = nil
             pushLabels()
+            pushConfig()
         case .button(let press):
             guard press.event == "press", filter.accept(press) else { return }
             deviceLog.info("button \(press.button.rawValue, privacy: .public) seq=\(press.seq) via \(link.rawValue, privacy: .public)")

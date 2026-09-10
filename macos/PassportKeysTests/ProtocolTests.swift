@@ -44,6 +44,10 @@ struct PassportProtocolTests {
         let labels = DeviceLabels(up: "Cmd+A", down: "Down", ok: #"Say "hi"/"#)
         #expect(String(decoding: PassportProtocol.encode(.labels(labels)), as: UTF8.self)
             == #"{"cmd":"labels","down":"Down","ok":"Say \"hi\"/","up":"Cmd+A"}"# + "\n")
+
+        #expect(String(decoding: PassportProtocol.encode(.config(DeviceConfig(screenOffSeconds: 0))), as: UTF8.self)
+            == #"{"cmd":"config","screen_off":0}"# + "\n")
+        #expect(PassportProtocol.decode(line: #"{"t":"ack","cmd":"config"}"#) == .ack("config"))
     }
 }
 

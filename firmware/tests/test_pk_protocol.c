@@ -99,6 +99,24 @@ static void test_parse_sanitizes_labels(void)
     CHECK(strlen(cmd.label[PK_KEY_UP]) == PK_LABEL_MAX - 1);
 }
 
+static void test_parse_config(void)
+{
+    pk_cmd_t cmd;
+    CHECK(parse("{\"cmd\":\"config\",\"screen_off\":10}", &cmd));
+    CHECK(cmd.type == PK_CMD_CONFIG && cmd.has_screen_off && cmd.screen_off_s == 10);
+
+    // 0 表示永不熄屏;字段顺序与空白无关。
+    CHECK(parse(" { \"screen_off\" : 0 , \"cmd\" : \"config\" } ", &cmd));
+    CHECK(cmd.type == PK_CMD_CONFIG && cmd.has_screen_off && cmd.screen_off_s == 0);
+
+    CHECK(parse("{\"cmd\":\"config\",\"screen_off\":86400}", &cmd));
+    CHECK(cmd.screen_off_s == PK_SCREEN_OFF_MAX_S);
+
+    char buf[PK_MSG_MAX];
+    CHECK(pk_format_ack(buf, sizeof(buf), "config") > 0);
+    CHECK_STR(buf, "{\"t\":\"ack\",\"cmd\":\"config\"}\n");
+}
+
 static void test_parse_rejects_invalid(void)
 {
     static const char *const bad[] = {
@@ -117,6 +135,14 @@ static void test_parse_rejects_invalid(void)
         "{\"cmd\":\"\\u12\"}",
         "{\"cmd\":\"hello\",\"n\":}",
         "{\"cmd\":\"hello",
+        "{\"cmd\":\"config\"}",
+        "{\"cmd\":\"config\",\"screen_off\":\"10\"}",
+        "{\"cmd\":\"config\",\"screen_off\":-1}",
+        "{\"cmd\":\"config\",\"screen_off\":1.5}",
+        "{\"cmd\":\"config\",\"screen_off\":1e3}",
+        "{\"cmd\":\"config\",\"screen_off\":010}",
+        "{\"cmd\":\"config\",\"screen_off\":86401}",
+        "{\"cmd\":\"config\",\"screen_off\":99999999999999999999}",
     };
     pk_cmd_t cmd;
     for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
@@ -185,6 +211,7 @@ int main(void)
     test_parse_simple_commands();
     test_parse_labels();
     test_parse_sanitizes_labels();
+    test_parse_config();
     test_parse_rejects_invalid();
     test_line_assembler();
 

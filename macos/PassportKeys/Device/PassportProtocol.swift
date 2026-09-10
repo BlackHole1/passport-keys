@@ -31,6 +31,7 @@ nonisolated enum HostCommand: Equatable, Sendable {
     case hello
     case ping
     case labels(DeviceLabels)
+    case config(DeviceConfig)
     case bye
 
     var name: String {
@@ -38,6 +39,7 @@ nonisolated enum HostCommand: Equatable, Sendable {
         case .hello: "hello"
         case .ping: "ping"
         case .labels: "labels"
+        case .config: "config"
         case .bye: "bye"
         }
     }
@@ -99,16 +101,35 @@ nonisolated enum PassportProtocol {
         }
     }
 
+    /// 为 nil 的字段不会编码进 JSON。
+    private nonisolated struct RawCommand: Encodable {
+        let cmd: String
+        var up: String?
+        var down: String?
+        var ok: String?
+        var screenOff: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case cmd, up, down, ok
+            case screenOff = "screen_off"
+        }
+    }
+
     static func encode(_ command: HostCommand) -> Data {
-        var object = ["cmd": command.name]
-        if case .labels(let labels) = command {
-            object["up"] = labels.up
-            object["down"] = labels.down
-            object["ok"] = labels.ok
+        var raw = RawCommand(cmd: command.name)
+        switch command {
+        case .labels(let labels):
+            raw.up = labels.up
+            raw.down = labels.down
+            raw.ok = labels.ok
+        case .config(let config):
+            raw.screenOff = config.screenOffSeconds
+        case .hello, .ping, .bye:
+            break
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        var data = (try? encoder.encode(object)) ?? Data()
+        var data = (try? encoder.encode(raw)) ?? Data()
         data.append(0x0A)
         return data
     }
