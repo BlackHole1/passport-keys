@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import struct
 import sys
@@ -23,6 +24,10 @@ APP_MAX_SIZE = 0x300000
 CARDID_OFFSET = 0x356000
 CARDID_SIZE = 0x4000
 ENTRY = struct.Struct("<HBBII16sI")
+# esp_app_desc_t opens the first DROM segment: 24-byte image header plus 8-byte segment header.
+APP_DESC_OFFSET = 0x10000 + 24 + 8
+APP_DESC_MAGIC = 0xABCD5432
+APP_DESC = struct.Struct("<II8s32s")
 
 
 @dataclass(frozen=True)
@@ -115,8 +120,38 @@ def verify_protected_layout(merged: bytes, build_dir: Path) -> None:
     print(f"Protected firmware layout: PASS (app {app_size} / {APP_MAX_SIZE} bytes)")
 
 
+def verify_below_cardid(merged: bytes) -> None:
+    """Writing an image at 0x0 erases every sector it covers, so it must end before cardid."""
+    if len(merged) > CARDID_OFFSET:
+        raise ValueError(
+            f"merged artifact is {len(merged)} bytes and would erase protected cardid at 0x{CARDID_OFFSET:x}"
+        )
+
+
+def read_app_version(merged: bytes) -> str:
+    """Return esp_app_desc_t.version, the PROJECT_VER embedded in the application image."""
+    if len(merged) < APP_DESC_OFFSET + APP_DESC.size:
+        raise ValueError("merged artifact is too short for an application description")
+    magic, _, _, version = APP_DESC.unpack_from(merged, APP_DESC_OFFSET)
+    if magic != APP_DESC_MAGIC:
+        raise ValueError("application image has no esp_app_desc_t at its first segment")
+    return version.split(b"\0", 1)[0].decode("ascii")
+
+
 def main() -> int:
-    build_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "build").resolve()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("build_dir", nargs="?", default="build")
+    parser.add_argument(
+        "--expect-version",
+        help="fail unless the application description version equals this value",
+    )
+    parser.add_argument(
+        "--below-cardid",
+        action="store_true",
+        help="fail if the merged image reaches the protected cardid partition",
+    )
+    args = parser.parse_args()
+    build_dir = Path(args.build_dir).resolve()
     merged_path = build_dir / "FoloToy-AI-Passport-full.bin"
     flash_args_path = build_dir / "flash_args"
 
@@ -147,10 +182,16 @@ def main() -> int:
 
     try:
         verify_protected_layout(merged, build_dir)
+        if args.below_cardid:
+            verify_below_cardid(merged)
+        version = read_app_version(merged)
+        if args.expect_version is not None and version != args.expect_version:
+            raise ValueError(f"app version is {version!r}, expected {args.expect_version!r}")
     except (OSError, UnicodeDecodeError, ValueError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
+    print(f"App version: {version}")
     print(f"Merged firmware: PASS ({len(merged)} bytes, flash at 0x0)")
     return 0
 

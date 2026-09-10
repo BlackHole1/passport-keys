@@ -76,6 +76,28 @@ class ProtectedLayoutTest(unittest.TestCase):
             (build_dir / "FoloToy-AI-Passport.bin").write_bytes(b"\xe9")
             VERIFY.verify_protected_layout(bytes(merged), build_dir)
 
+    def test_rejects_images_that_reach_cardid(self) -> None:
+        VERIFY.verify_below_cardid(b"\xff" * VERIFY.CARDID_OFFSET)
+        with self.assertRaisesRegex(ValueError, "cardid"):
+            VERIFY.verify_below_cardid(b"\xff" * (VERIFY.CARDID_OFFSET + 1))
+
+
+class AppDescriptionTest(unittest.TestCase):
+    @staticmethod
+    def merged_with_app_desc(version: bytes, magic: int = 0xABCD5432) -> bytes:
+        merged = bytearray(b"\xff" * (VERIFY.APP_DESC_OFFSET + VERIFY.APP_DESC.size))
+        VERIFY.APP_DESC.pack_into(
+            merged, VERIFY.APP_DESC_OFFSET, magic, 0, b"\0" * 8, version.ljust(32, b"\0")
+        )
+        return bytes(merged)
+
+    def test_reads_project_version(self) -> None:
+        self.assertEqual(VERIFY.read_app_version(self.merged_with_app_desc(b"1.2.3")), "1.2.3")
+
+    def test_rejects_missing_app_description(self) -> None:
+        with self.assertRaisesRegex(ValueError, "esp_app_desc_t"):
+            VERIFY.read_app_version(self.merged_with_app_desc(b"1.2.3", magic=0))
+
 
 if __name__ == "__main__":
     unittest.main()

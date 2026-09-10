@@ -6,6 +6,10 @@
 
 ## Unreleased
 
+- 加入 Passport Keys 应用:用单一界面替换演示菜单,通过 USB Serial/JTAG 或低功耗蓝牙,以 JSON Lines 协议把上、下、确认按键转发给 macOS 上的 Passport Keys app;屏幕显示连接状态、每个键的快捷键标签和电量,空闲时自动调暗背光。详见 [passport-keys.zh_CN.md](passport-keys.zh_CN.md)。
+
+- 固件版本号改为取自 ESP-IDF 应用描述(发布构建为 `PROJECT_VER`,其余为 `git describe`),不再写死在代码里。passport-keys 仓库的 CI 在根目录 `.github/workflows`(`pr-check.yaml`、`publish.yaml`)运行,因此移除了上游工作流。`validate.sh` 改为检查根目录工作流并传入 `PROJECT_VER`;`verify_firmware.py` 校验内嵌版本号,并确认合并镜像在 `cardid` 之前结束;`install-actionlint.sh` 的校验和比对兼容新版 macOS 自带的 BSD `sha256sum`。
+
 - 加入厂家为优特利 520mAh 电芯生成的 80 字节 CW2017 profile，并实现内容与更新标志检查、写入后校验、规定的重启时序以及有上限的 SOC 就绪等待。
 
 - 扩充环境引导文档：新增乐鑫 Git 服务镜像（`git.espressif.com.cn`）作为中国大陆首选线路，覆盖 ESP-IDF v5.5.3 及其子模块；补充子模块长等待/超时处理、原地修复，以及 `esp32-wifi-lib` 等大仓的按钉死 commit 浅取；提示按仓库残留的 Jihulab `insteadOf` 旧配置；并把官方离线 release 压缩包加入兜底方案（经验来自 `esp-mosaico/esp-mosaico-vibe`）。
